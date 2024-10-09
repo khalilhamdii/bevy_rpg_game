@@ -1,27 +1,37 @@
-use bevy::{prelude::*, render::camera::ScalingMode};
-use rand::seq::SliceRandom;
-#[derive(Component)]
-pub struct Player {
-    pub speed: f32,
-}
+use bevy::{
+    input::common_conditions::input_toggle_active, prelude::*, render::camera::ScalingMode,
+};
 
-#[derive(Component)]
-pub struct Pig {
-    pub lifetime: Timer,
+use bevy_inspector_egui::prelude::*;
+use bevy_inspector_egui::quick::WorldInspectorPlugin;
+
+use pig::PigPlugin;
+
+mod pig;
+
+#[derive(Component, InspectorOptions, Default, Reflect)]
+#[reflect(Component, InspectorOptions)]
+pub struct Player {
+    #[inspector(min = 0.0)]
     pub speed: f32,
-    pub current_direction: Direction,
-    pub direction_timer: Timer, // Timer to change direction
 }
 
 #[derive(Resource)]
 pub struct Money(pub f32);
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Reflect)]
 enum Direction {
     Up,
     Down,
     Right,
     Left,
+}
+
+// Implementing Default for Direction
+impl Default for Direction {
+    fn default() -> Self {
+        Direction::Up // Default direction is Up
+    }
 }
 
 fn main() {
@@ -40,9 +50,13 @@ fn main() {
                 })
                 .build(),
         )
+        .add_plugins(
+            WorldInspectorPlugin::default().run_if(input_toggle_active(true, KeyCode::Escape)),
+        )
         .insert_resource(Money(100.0))
+        .add_plugins(PigPlugin)
         .add_systems(Startup, setup)
-        .add_systems(Update, (character_movement, spawn_pig, pig_lifetime))
+        .add_systems(Update, (character_movement))
         .run();
 }
 
@@ -67,6 +81,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                 ..Default::default()
             },
             Player { speed: 100.0 },
+            Name::new("Player"),
         ))
         .insert(Player { speed: 100.0 });
 }
@@ -107,79 +122,6 @@ fn character_movement(
         if input.pressed(KeyCode::KeyS) && input.pressed(KeyCode::KeyA) {
             transform.translation.x -= movement_amount / 4.0;
             transform.translation.y -= movement_amount / 4.0;
-        }
-    }
-}
-
-fn spawn_pig(
-    mut commands: Commands,
-    asset_server: Res<AssetServer>,
-    input: Res<ButtonInput<KeyCode>>,
-    mut money: ResMut<Money>,
-    player: Query<&Transform, With<Player>>,
-) {
-    if !input.just_pressed(KeyCode::Space) {
-        return;
-    }
-
-    let player_transform = player.single();
-
-    if money.0 >= 10.0 {
-        money.0 -= 10.0;
-        info!("Spent $10 on a pig, remaining money: ${:?}", money.0);
-
-        let texture = asset_server.load("pig.png");
-
-        commands.spawn((
-            SpriteBundle {
-                texture,
-                transform: *player_transform,
-                ..Default::default()
-            },
-            Pig {
-                lifetime: Timer::from_seconds(10.0, TimerMode::Once),
-                speed: 25.0,
-                current_direction: Direction::Up,
-                direction_timer: Timer::from_seconds(2.0, TimerMode::Repeating),
-            },
-        ));
-    }
-}
-
-fn pig_lifetime(
-    mut commands: Commands,
-    time: Res<Time>,
-    mut pigs: Query<(Entity, &mut Pig, &mut Transform)>,
-    mut money: ResMut<Money>,
-) {
-    let mut rng = rand::thread_rng();
-    let directions = vec![
-        Direction::Up,
-        Direction::Down,
-        Direction::Right,
-        Direction::Left,
-    ];
-    for (pig_entity, mut pig, mut transform) in &mut pigs {
-        pig.lifetime.tick(time.delta());
-        pig.direction_timer.tick(time.delta());
-
-        if pig.direction_timer.finished() {
-            pig.current_direction = *directions.choose(&mut rng).unwrap();
-        }
-
-        if pig.lifetime.finished() {
-            money.0 += 15.0;
-            commands.entity(pig_entity).despawn();
-
-            info!("Pig sold for $15! Current Money: ${:?}", money.0)
-        }
-
-        let movement_amount = pig.speed * time.delta_seconds(); // Example movement speed
-        match pig.current_direction {
-            Direction::Up => transform.translation.y += movement_amount,
-            Direction::Down => transform.translation.y -= movement_amount,
-            Direction::Right => transform.translation.x += movement_amount,
-            Direction::Left => transform.translation.x -= movement_amount,
         }
     }
 }
