@@ -1,9 +1,18 @@
 use bevy::{prelude::*, render::camera::ScalingMode};
-
+use rand::Rng;
 #[derive(Component)]
 pub struct Player {
     pub speed: f32,
 }
+
+#[derive(Component)]
+pub struct Pig {
+    pub lifetime: Timer,
+    pub speed: f32,
+}
+
+#[derive(Resource)]
+pub struct Money(pub f32);
 
 fn main() {
     App::new()
@@ -21,8 +30,9 @@ fn main() {
                 })
                 .build(),
         )
+        .insert_resource(Money(100.0))
         .add_systems(Startup, setup)
-        .add_systems(Update, character_movement)
+        .add_systems(Update, (character_movement, spawn_pig, pig_lifetime))
         .run();
 }
 
@@ -87,6 +97,57 @@ fn character_movement(
         if input.pressed(KeyCode::KeyS) && input.pressed(KeyCode::KeyA) {
             transform.translation.x -= movement_amount / 4.0;
             transform.translation.y -= movement_amount / 4.0;
+        }
+    }
+}
+
+fn spawn_pig(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    input: Res<ButtonInput<KeyCode>>,
+    mut money: ResMut<Money>,
+    player: Query<&Transform, With<Player>>,
+) {
+    if !input.just_pressed(KeyCode::Space) {
+        return;
+    }
+
+    let player_transform = player.single();
+
+    if money.0 >= 10.0 {
+        money.0 -= 10.0;
+        info!("Spent $10 on a pig, remaining money: ${:?}", money.0);
+
+        let texture = asset_server.load("pig.png");
+
+        commands.spawn((
+            SpriteBundle {
+                texture,
+                transform: *player_transform,
+                ..Default::default()
+            },
+            Pig {
+                lifetime: Timer::from_seconds(10.0, TimerMode::Once),
+                speed: 50.0,
+            },
+        ));
+    }
+}
+
+fn pig_lifetime(
+    mut commands: Commands,
+    time: Res<Time>,
+    mut pigs: Query<(Entity, &mut Pig, &mut Transform)>,
+    mut money: ResMut<Money>,
+) {
+    for (pig_entity, mut pig, mut transform) in &mut pigs {
+        pig.lifetime.tick(time.delta());
+
+        if pig.lifetime.finished() {
+            money.0 += 15.0;
+            commands.entity(pig_entity).despawn();
+
+            info!("Pig sold for $15! Current Money: ${:?}", money.0)
         }
     }
 }
