@@ -1,4 +1,9 @@
-use bevy::{core_pipeline::core_2d::graph::Core2d, input::keyboard::KeyboardInput, prelude::*};
+use bevy::{prelude::*, render::camera::ScalingMode};
+
+#[derive(Component)]
+pub struct Player {
+    pub speed: f32,
+}
 
 fn main() {
     App::new()
@@ -22,44 +27,66 @@ fn main() {
 }
 
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
-    // Spawn Camera
-    commands.spawn(Camera2dBundle {
-        camera: Camera {
-            clear_color: ClearColorConfig::Custom(Color::srgb(0.04, 0.0, 0.07)),
-            ..Default::default()
-        },
-        ..Default::default()
-    });
+    // Camera Setup
+    let mut camera = Camera2dBundle::default();
 
+    camera.projection.scaling_mode = ScalingMode::AutoMin {
+        min_width: 256.0,
+        min_height: 144.0,
+    };
+
+    commands.spawn(camera);
+
+    // Player setup
     let texture = asset_server.load("character.png");
 
-    commands.spawn(SpriteBundle {
-        sprite: Sprite {
-            custom_size: Some(Vec2::new(100.0, 100.0)),
-            ..Default::default()
-        },
-        texture,
-        ..Default::default()
-    });
+    commands
+        .spawn((
+            SpriteBundle {
+                texture,
+                ..Default::default()
+            },
+            Player { speed: 100.0 },
+        ))
+        .insert(Player { speed: 100.0 });
 }
 
 fn character_movement(
-    mut characters: Query<(&mut Transform, &Sprite)>,
+    mut characters: Query<(&mut Transform, &Player)>,
     input: Res<ButtonInput<KeyCode>>,
     time: Res<Time>,
 ) {
-    for (mut transform, _) in &mut characters {
+    for (mut transform, player) in &mut characters {
+        let movement_amount = player.speed * time.delta_seconds();
+
         if input.pressed(KeyCode::KeyW) {
-            transform.translation.y += 100.0 * time.delta_seconds();
+            transform.translation.y += movement_amount;
         }
         if input.pressed(KeyCode::KeyS) {
-            transform.translation.y -= 100.0 * time.delta_seconds();
+            transform.translation.y -= movement_amount;
         }
         if input.pressed(KeyCode::KeyD) {
-            transform.translation.x += 100.0 * time.delta_seconds();
+            transform.translation.x += movement_amount;
         }
         if input.pressed(KeyCode::KeyA) {
-            transform.translation.x -= 100.0 * time.delta_seconds();
+            transform.translation.x -= movement_amount;
+        }
+
+        if input.pressed(KeyCode::KeyW) && input.pressed(KeyCode::KeyD) {
+            transform.translation.x += movement_amount / 4.0;
+            transform.translation.y += movement_amount / 4.0;
+        }
+        if input.pressed(KeyCode::KeyS) && input.pressed(KeyCode::KeyD) {
+            transform.translation.x += movement_amount / 4.0;
+            transform.translation.y -= movement_amount / 4.0;
+        }
+        if input.pressed(KeyCode::KeyW) && input.pressed(KeyCode::KeyA) {
+            transform.translation.x -= movement_amount / 4.0;
+            transform.translation.y += movement_amount / 4.0;
+        }
+        if input.pressed(KeyCode::KeyS) && input.pressed(KeyCode::KeyA) {
+            transform.translation.x -= movement_amount / 4.0;
+            transform.translation.y -= movement_amount / 4.0;
         }
     }
 }
