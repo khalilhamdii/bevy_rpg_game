@@ -1,5 +1,5 @@
 use bevy::{prelude::*, render::camera::ScalingMode};
-use rand::Rng;
+use rand::seq::SliceRandom;
 #[derive(Component)]
 pub struct Player {
     pub speed: f32,
@@ -9,10 +9,20 @@ pub struct Player {
 pub struct Pig {
     pub lifetime: Timer,
     pub speed: f32,
+    pub current_direction: Direction,
+    pub direction_timer: Timer, // Timer to change direction
 }
 
 #[derive(Resource)]
 pub struct Money(pub f32);
+
+#[derive(Debug, Clone, Copy)]
+enum Direction {
+    Up,
+    Down,
+    Right,
+    Left,
+}
 
 fn main() {
     App::new()
@@ -128,7 +138,9 @@ fn spawn_pig(
             },
             Pig {
                 lifetime: Timer::from_seconds(10.0, TimerMode::Once),
-                speed: 50.0,
+                speed: 25.0,
+                current_direction: Direction::Up,
+                direction_timer: Timer::from_seconds(2.0, TimerMode::Repeating),
             },
         ));
     }
@@ -140,14 +152,34 @@ fn pig_lifetime(
     mut pigs: Query<(Entity, &mut Pig, &mut Transform)>,
     mut money: ResMut<Money>,
 ) {
+    let mut rng = rand::thread_rng();
+    let directions = vec![
+        Direction::Up,
+        Direction::Down,
+        Direction::Right,
+        Direction::Left,
+    ];
     for (pig_entity, mut pig, mut transform) in &mut pigs {
         pig.lifetime.tick(time.delta());
+        pig.direction_timer.tick(time.delta());
+
+        if pig.direction_timer.finished() {
+            pig.current_direction = *directions.choose(&mut rng).unwrap();
+        }
 
         if pig.lifetime.finished() {
             money.0 += 15.0;
             commands.entity(pig_entity).despawn();
 
             info!("Pig sold for $15! Current Money: ${:?}", money.0)
+        }
+
+        let movement_amount = pig.speed * time.delta_seconds(); // Example movement speed
+        match pig.current_direction {
+            Direction::Up => transform.translation.y += movement_amount,
+            Direction::Down => transform.translation.y -= movement_amount,
+            Direction::Right => transform.translation.x += movement_amount,
+            Direction::Left => transform.translation.x -= movement_amount,
         }
     }
 }
