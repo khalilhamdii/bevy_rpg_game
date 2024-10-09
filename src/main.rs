@@ -1,4 +1,4 @@
-use bevy::{core_pipeline::core_2d::graph::Core2d, prelude::*};
+use bevy::{core_pipeline::core_2d::graph::Core2d, input::keyboard::KeyboardInput, prelude::*};
 
 fn main() {
     App::new()
@@ -17,6 +17,7 @@ fn main() {
                 .build(),
         )
         .add_systems(Startup, setup)
+        .add_systems(Update, character_movement)
         .run();
 }
 
@@ -40,4 +41,25 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         texture,
         ..Default::default()
     });
+}
+
+fn character_movement(
+    mut characters: Query<(&mut Transform, &Sprite)>,
+    input: Res<ButtonInput<KeyCode>>,
+    time: Res<Time>,
+) {
+    for (mut transform, _) in &mut characters {
+        if input.pressed(KeyCode::KeyW) {
+            transform.translation.y += 100.0 * time.delta_seconds();
+        }
+        if input.pressed(KeyCode::KeyS) {
+            transform.translation.y -= 100.0 * time.delta_seconds();
+        }
+        if input.pressed(KeyCode::KeyD) {
+            transform.translation.x += 100.0 * time.delta_seconds();
+        }
+        if input.pressed(KeyCode::KeyA) {
+            transform.translation.x -= 100.0 * time.delta_seconds();
+        }
+    }
 }
