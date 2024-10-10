@@ -1,9 +1,7 @@
 use bevy::prelude::*;
 use rand::seq::SliceRandom;
 
-use crate::Direction;
-use crate::Money;
-use crate::Player;
+use crate::{Direction, GameState, GameplaySet, Money, MoneyEarnedEvent, Player};
 
 #[derive(Component, Default, Reflect)]
 #[reflect(Component)]
@@ -22,7 +20,12 @@ pub struct PigPlugin;
 impl Plugin for PigPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, spawn_pig_parent)
-            .add_systems(Update, (spawn_pig, pig_lifetime))
+            .add_systems(
+                Update,
+                (spawn_pig, pig_lifetime)
+                    .in_set(GameplaySet::Pig)
+                    .run_if(in_state(GameState::Gameplay)),
+            )
             .register_type::<Pig>();
     }
 }
@@ -73,8 +76,7 @@ fn pig_lifetime(
     mut commands: Commands,
     time: Res<Time>,
     mut pigs: Query<(Entity, &mut Pig, &mut Transform)>,
-    parent: Query<Entity, With<PigParent>>,
-    mut money: ResMut<Money>,
+    mut event_writer: EventWriter<MoneyEarnedEvent>,
 ) {
     let mut rng = rand::thread_rng();
     let directions = vec![
@@ -92,14 +94,8 @@ fn pig_lifetime(
         }
 
         if pig.lifetime.finished() {
-            money.0 += 15.0;
-
-            commands
-                .entity(parent.single())
-                .remove_children(&[pig_entity]);
-            commands.entity(pig_entity).despawn();
-
-            info!("Pig sold for $15! Current Money: ${:?}", money.0)
+            event_writer.send(MoneyEarnedEvent(15.0));
+            commands.entity(pig_entity).despawn_recursive();
         }
 
         let movement_amount = pig.speed * time.delta_seconds(); // Example movement speed

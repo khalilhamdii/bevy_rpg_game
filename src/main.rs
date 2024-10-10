@@ -6,6 +6,7 @@ use bevy_inspector_egui::prelude::*;
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 
 use pig::PigPlugin;
+use rand::Rng;
 use ui::GameUI;
 
 mod pig;
@@ -18,7 +19,8 @@ pub struct Player {
     pub speed: f32,
 }
 
-#[derive(Resource)]
+#[derive(Resource, Default, Reflect)]
+#[reflect(Resource)]
 pub struct Money(pub f32);
 
 #[derive(Debug, Clone, Copy, Reflect)]
@@ -32,8 +34,30 @@ enum Direction {
 // Implementing Default for Direction
 impl Default for Direction {
     fn default() -> Self {
-        Direction::Up // Default direction is Up
+        let mut rng = rand::thread_rng();
+        match rng.gen_range(0..4) {
+            0 => Direction::Up,
+            1 => Direction::Down,
+            2 => Direction::Right,
+            _ => Direction::Left,
+        }
     }
+}
+
+#[derive(Event)]
+pub struct MoneyEarnedEvent(f32);
+
+#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash, States)]
+pub enum GameState {
+    #[default]
+    MainMenu,
+    Gameplay,
+}
+
+#[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
+enum GameplaySet {
+    Player,
+    Pig,
 }
 
 fn main() {
@@ -56,9 +80,18 @@ fn main() {
             WorldInspectorPlugin::default().run_if(input_toggle_active(true, KeyCode::Escape)),
         )
         .insert_resource(Money(100.0))
+        .register_type::<Money>()
+        .register_type::<Player>()
+        .add_event::<MoneyEarnedEvent>()
         .add_plugins((PigPlugin, GameUI))
+        .insert_state(GameState::Gameplay)
         .add_systems(Startup, setup)
-        .add_systems(Update, (character_movement))
+        .add_systems(
+            Update,
+            (character_movement, money_sound_effect, give_money)
+                .in_set(GameplaySet::Player)
+                .run_if(in_state(GameState::Gameplay)),
+        )
         .run();
 }
 
@@ -125,5 +158,27 @@ fn character_movement(
             transform.translation.x -= movement_amount / 4.0;
             transform.translation.y -= movement_amount / 4.0;
         }
+    }
+}
+
+fn money_sound_effect(
+    mut commands: Commands,
+    assets: Res<AssetServer>,
+    mut money_events: EventReader<MoneyEarnedEvent>,
+) {
+    for _event in money_events.read() {
+        commands.spawn((
+            AudioBundle {
+                source: assets.load("money.wav"),
+                ..Default::default()
+            },
+            Name::new("MoneyAudio"),
+        ));
+    }
+}
+
+fn give_money(mut money_events: EventReader<MoneyEarnedEvent>, mut money: ResMut<Money>) {
+    for event in money_events.read() {
+        money.0 += event.0
     }
 }
