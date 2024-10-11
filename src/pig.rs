@@ -1,7 +1,8 @@
 use bevy::prelude::*;
 use rand::seq::SliceRandom;
 
-use crate::{Direction, GameState, GameplaySet, Money, MoneyEarnedEvent, Player};
+use crate::player::Player;
+use crate::{Direction, GameState, GameplaySet, Money, MoneyEarnedEvent};
 
 #[derive(Component, Default, Reflect)]
 #[reflect(Component)]
