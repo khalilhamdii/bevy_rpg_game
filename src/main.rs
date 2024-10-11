@@ -18,7 +18,7 @@ pub struct Player {
     #[inspector(min = 0.0)]
     pub speed: f32,
     pub current_direction: FacingDirection,
-    pub moving: bool,
+    pub is_moving: bool,
 }
 
 #[derive(Resource, Default, Reflect)]
@@ -168,7 +168,7 @@ fn setup(
             },
             Player {
                 speed: 100.0,
-                moving: false,
+                is_moving: false,
                 ..Default::default()
             },
             Name::new("Player"),
@@ -189,31 +189,33 @@ fn character_movement(
     time: Res<Time>,
 ) {
     for (mut transform, mut player) in &mut player_query {
-        player.moving = false;
-
         let movement_amount = player.speed * time.delta_seconds();
+
+        let mut is_moving = false;
 
         if input.pressed(KeyCode::KeyW) {
             player.current_direction = FacingDirection::Up;
             transform.translation.y += movement_amount;
-            player.moving = true;
+            is_moving = true;
         }
         if input.pressed(KeyCode::KeyS) {
             player.current_direction = FacingDirection::Down;
             transform.translation.y -= movement_amount;
-            player.moving = true;
+            is_moving = true;
         }
 
         if input.pressed(KeyCode::KeyA) {
             player.current_direction = FacingDirection::Left;
             transform.translation.x -= movement_amount;
-            player.moving = true;
+            is_moving = true;
         }
         if input.pressed(KeyCode::KeyD) {
             player.current_direction = FacingDirection::Right;
             transform.translation.x += movement_amount;
-            player.moving = true;
+            is_moving = true;
         }
+
+        player.is_moving = is_moving;
 
         // if input.pressed(KeyCode::KeyW) && input.pressed(KeyCode::KeyD) {
         //     transform.translation.x += movement_amount / 4.0;
@@ -271,22 +273,24 @@ fn animate_player(
 ) {
     let (mut sprite, animated_sprite, player) = player_query.single_mut();
 
-    match player.current_direction {
-        FacingDirection::Up => {
-            sprite.index =
-                animations.walk_up[animated_sprite.current_frame % animations.walk_up.len()];
-        }
-        FacingDirection::Down => {
-            sprite.index =
-                animations.walk_down[animated_sprite.current_frame % animations.walk_down.len()];
-        }
-        FacingDirection::Left => {
-            sprite.index =
-                animations.walk_left[animated_sprite.current_frame % animations.walk_left.len()];
-        }
-        FacingDirection::Right => {
-            sprite.index =
-                animations.walk_right[animated_sprite.current_frame % animations.walk_right.len()];
+    if player.is_moving {
+        match player.current_direction {
+            FacingDirection::Up => {
+                sprite.index =
+                    animations.walk_up[animated_sprite.current_frame % animations.walk_up.len()];
+            }
+            FacingDirection::Down => {
+                sprite.index = animations.walk_down
+                    [animated_sprite.current_frame % animations.walk_down.len()];
+            }
+            FacingDirection::Left => {
+                sprite.index = animations.walk_left
+                    [animated_sprite.current_frame % animations.walk_left.len()];
+            }
+            FacingDirection::Right => {
+                sprite.index = animations.walk_right
+                    [animated_sprite.current_frame % animations.walk_right.len()];
+            }
         }
     }
 }
