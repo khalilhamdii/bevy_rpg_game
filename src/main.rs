@@ -2,6 +2,7 @@ use bevy::{
     input::common_conditions::input_toggle_active, prelude::*, render::camera::ScalingMode,
 };
 
+use bevy_ecs_ldtk::prelude::*;
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 
 use pig::PigPlugin;
@@ -90,20 +91,31 @@ fn main() {
         )
         .insert_resource(Money(100.0))
         .add_event::<MoneyEarnedEvent>()
+        .add_plugins(LdtkPlugin)
         .add_plugins((PlayerPlugin, PigPlugin, GameUI))
         .insert_state(GameState::Gameplay)
         .add_systems(Startup, setup)
+        .insert_resource(LevelSelection::index(0))
         .run();
 }
 
-fn setup(mut commands: Commands) {
+fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     // Camera Setup
     let mut camera = Camera2dBundle::default();
 
-    camera.projection.scaling_mode = ScalingMode::AutoMin {
-        min_width: 256.0,
-        min_height: 144.0,
-    };
+    camera.projection.scale = 0.5;
+    camera.transform.translation.x += 1280.0 / 4.0;
+    camera.transform.translation.y += 720.0 / 4.0;
+
+    // camera.projection.scaling_mode = ScalingMode::AutoMin {
+    //     min_width: 256.0,
+    //     min_height: 144.0,
+    // };
 
     commands.spawn(camera);
+
+    commands.spawn(LdtkWorldBundle {
+        ldtk_handle: asset_server.load("tile-based-game.ldtk"),
+        ..Default::default()
+    });
 }
