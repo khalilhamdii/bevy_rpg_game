@@ -649,7 +649,36 @@
 					"seed": 6893206,
 					"overrideTilesetUid": null,
 					"gridTiles": [],
-					"entityInstances": []
+					"entityInstances": [
+						{
+							"__identifier": "Player",
+							"__grid": [12,21],
+							"__pivot": [0,0],
+							"__tags": [],
+							"__tile": { "tilesetUid": 1, "x": 0, "y": 0, "w": 48, "h": 48 },
+							"__smartColor": "#BE4A2F",
+							"iid": "c499d080-73f0-11ef-ac82-c3cdec215939",
+							"width": 16,
+							"height": 16,
+							"defUid": 24,
+							"px": [192,336],
+							"fieldInstances": []
+						},
+						{
+							"__identifier": "Goal",
+							"__grid": [30,25],
+							"__pivot": [0,0],
+							"__tags": [],
+							"__tile": { "tilesetUid": 2, "x": 256, "y": 304, "w": 16, "h": 16 },
+							"__smartColor": "#D77643",
+							"iid": "c6817c40-73f0-11ef-ac82-43f2a2e925fe",
+							"width": 16,
+							"height": 16,
+							"defUid": 26,
+							"px": [480,400],
+							"fieldInstances": []
+						}
+					]
 				},
 				{
 					"__identifier": "Walls",

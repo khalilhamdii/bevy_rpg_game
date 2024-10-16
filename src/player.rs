@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use bevy_ecs_ldtk::prelude::*;
 use bevy_inspector_egui::prelude::*;
 
 use crate::{FacingDirection, GameState, GameplaySet, Money, MoneyEarnedEvent};
@@ -44,9 +45,11 @@ impl Plugin for PlayerPlugin {
                 .in_set(GameplaySet::Player)
                 .run_if(in_state(GameState::Gameplay)),
         )
-        .add_systems(Update, (animate_player, animate_sprites).chain())
+        .add_systems(Update, (animate_player, animate_sprites, move_camera))
         .register_type::<Money>()
-        .register_type::<Player>();
+        .register_type::<Player>()
+        // .register_ldtk_entity::<PlayerBundle>("Player")
+        .register_ldtk_entity::<GoalBundle>("Goal");
     }
 }
 
@@ -68,7 +71,7 @@ fn spawn_player(
     commands
         .spawn((
             SpriteBundle {
-                transform: Transform::from_scale(Vec3::splat(0.5)),
+                transform: Transform::from_xyz(47.0, 59.0, 1.5).with_scale(Vec3::splat(0.5)),
                 texture: texture_handle.clone(),
                 ..Default::default()
             },
@@ -199,4 +202,32 @@ fn animate_player(
             }
         }
     }
+}
+
+pub fn move_camera(
+    player_query: Query<&Transform, With<Player>>,
+    mut camera_query: Query<&mut Transform, (With<Camera>, Without<Player>)>,
+) {
+    if let Ok(player_transform) = player_query.get_single() {
+        let mut camera_transform = camera_query.single_mut();
+        camera_transform.translation.x = player_transform.translation.x;
+        camera_transform.translation.y = player_transform.translation.y;
+    }
+}
+
+#[derive(Default, Bundle, LdtkEntity)]
+struct PlayerBundle {
+    player: Player,
+    #[sprite_sheet_bundle]
+    sprite_sheet_bundle: LdtkSpriteSheetBundle,
+    #[grid_coords]
+    grid_coords: GridCoords,
+    #[worldly]
+    worldly: Worldly,
+}
+
+#[derive(Default, Bundle, LdtkEntity)]
+struct GoalBundle {
+    #[sprite_sheet_bundle]
+    sprite_sheet_bundle: LdtkSpriteSheetBundle,
 }

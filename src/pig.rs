@@ -20,14 +20,14 @@ pub struct PigPlugin;
 
 impl Plugin for PigPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, spawn_pig_parent)
-            .add_systems(
-                Update,
-                (spawn_pig, pig_lifetime)
-                    .in_set(GameplaySet::Pig)
-                    .run_if(in_state(GameState::Gameplay)),
-            )
-            .register_type::<Pig>();
+        // app.add_systems(Startup, spawn_pig_parent)
+        //     .add_systems(
+        //         Update,
+        //         (spawn_pig, pig_lifetime)
+        //             .in_set(GameplaySet::Pig)
+        //             .run_if(in_state(GameState::Gameplay)),
+        //     )
+        //     .register_type::<Pig>();
     }
 }
 
